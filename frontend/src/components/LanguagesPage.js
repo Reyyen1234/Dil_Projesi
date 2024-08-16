@@ -56,7 +56,7 @@ const LanguagesPage = () => {
                 })
                 .catch(error => console.error('Error adding language:', error));
         };
-        
+   /*      
     const handleUpdateLanguage = () => {
         if (Object.keys(newLangData).length === 0) {
             alert('Please enter data to update.');
@@ -70,7 +70,7 @@ const LanguagesPage = () => {
             })
             .catch(error => console.error('Error updating language:', error));
     };
-    
+     */
 
     const handleDeleteLanguage = () => {
         axios.delete(`http://localhost:5000/api/${userType}/${language}`)
@@ -85,7 +85,6 @@ const LanguagesPage = () => {
         <div>
              <div className="container">
              <h1 className="title">Karcin Dil Project</h1>
-              {/*   <button onClick={() => handleLanguageChange('newLang', 'New Language')}>New Language</button> */}
             <table className="table">
             <thead>
                 <tr>
@@ -121,7 +120,7 @@ const LanguagesPage = () => {
               }}
             />
              <button onClick={handleAddLanguage}>Add Language</button> 
-            <button onClick={handleUpdateLanguage}>Update Language</button>
+            {/* <button onClick={handleUpdateLanguage}>Update Language</button> */}
             <button onClick={handleDeleteLanguage}>Delete Current Language</button>
         </div>
         </div>

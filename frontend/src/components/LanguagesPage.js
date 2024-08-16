@@ -38,32 +38,6 @@ const LanguagesPage = () => {
         }
     }, [userType, language]);
     
-
-   /*  const handleLanguageChange = (lang, displayName) => {
-        setLanguage(lang);
-        setNewLangName(displayName);
-    }; */
-    
-      /*   const handleAddLanguage = () => {
-            if (Object.keys(newLangData).length === 0) {
-                alert('Please enter valid language data before adding.');
-                return;
-            }
-        
-            axios.post(`http://localhost:5000/api/${userType}/${language}`, newLangData)
-                .then(response => {
-                    alert(`Language added successfully!`);
-                    // Optionally re-fetch the new language data
-                    return axios.get(`http://localhost:5000/api/${userType}/${language}`);
-                })
-                .then(res => {
-                    setNewLangData(res.data);  // Update the newLangData state with the fetched data
-                    setNewLangName(res.data.langName || 'New Language');  // Ensure the new language is set in the state
-                })
-               
-                .catch(error => console.error('Error adding language:', error));
-        };
-     */
         const handleAddLanguage = () => {
             if (Object.keys(newLangData).length === 0) {
                 alert('Please enter valid language data before adding.');

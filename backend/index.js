@@ -8,7 +8,7 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json()); // To parse JSON bodies
 
-// Helper functions
+
 const readJsonFile = (filePath, res) => {
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
@@ -83,76 +83,6 @@ app.put('/api/:type/:lang', (req, res) => {
     });
 });
 
-
-
-// Route to add or update a language in a specific folder
-/* app.post('/api/:type/:lang', (req, res) => {
-    const type = req.params.type;  // "client" or "admin"
-    const lang = req.params.lang;  // "en", "tr", or a new language
-    const data = req.body;
-    
-    // Construct file path based on the language parameter
-    const folder = type === 'newLanguages' ? 'newLanguages' : `karcinDilSource/${type}`;
-    const filePath = path.join(__dirname, folder, `${lang}.json`);
-    if (lang === 'en' || lang === 'tr') {
-        // If it's English or Turkish, only update the respective files in the appropriate folder
-        const folder = `karcinDilSource/${type}`;
-        const filePath = path.join(__dirname, folder, `${lang}.json`);
-        
-        // Write data to the respective language file
-        writeJsonFile(filePath, data, res);
-    } else {
-        // If it's a new language, add it only to the newLanguages folder
-        const folder = 'karcinDilSource/newLanguages';
-        const filePath = path.join(__dirname, folder, `${lang}.json`);}
-    // Ensure directory exists
-    const dirPath = path.dirname(filePath);
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-    }
-
-    // Write data to the appropriate language file
-    writeJsonFile(filePath, data, res);
-});
- */
-/* app.post('/api/:type/:lang', (req, res) => {
-    const type = req.params.type;
-    const lang = req.params.lang;
-    const data = req.body;
-    
-    const folder = type === 'newLanguages' ? 'newLanguages' : `karcinDilSource/${type}`;
-    const filePath = path.join(__dirname, folder, `${lang}.json`);
-
-    console.log('Creating directory if not exists:', filePath);
-
-    // Ensure directory exists
-    const dirPath = path.dirname(filePath);
-    if (!fs.existsSync(dirPath)) {
-        try{
-        fs.mkdirSync(dirPath, { recursive: true });
-        console.log(`Directory created: ${dirPath}`);
-    }catch (err) {
-        console.error('Error creating directory:', err);
-        return res.status(500).json({ error: 'Error creating directory' });}
-    }
-
-    console.log('Writing data to file:', filePath);
-
-    fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
-        if (err) {
-            console.error('Error writing file:', err);
-            console.log('Headers sent:', res.headersSent);
-            if (!res.headersSent) {
-                return res.status(500).json({ error: `Error writing to ${path.basename(filePath)}` });
-            }
-        } else {
-            console.log('Data written successfully');
-            if (!res.headersSent) {
-                res.status(200).json({ message: `Data successfully written for ${path.basename(filePath)}` });
-            }
-        }
-    });
-}); */
 app.post('/api/:type/:lang', (req, res) => {
     const type = req.params.type;  // "client", "admin", or "newLanguages"
     const lang = req.params.lang;  // New language identifier

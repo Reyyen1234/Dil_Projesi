@@ -6,10 +6,23 @@ import './modul.css'
 const Module = () => {
     const navigate = useNavigate();
     const [moduleName, setModuleName] = useState('');
-    const [includeNewLanguageFile, setIncludeNewLanguageFile] = useState(false);
     const [modules, setModules] = useState([]);
+    const [newModuleName, setNewModuleName] = useState(''); // State to handle new module name for update
+    const [editingModule, setEditingModule] = useState(null); // Track the module being edited
+
     
     useEffect(() => {
+        fetchModules();
+      /*   axios.get('http://localhost:5000/api/modules')
+            .then(response => {
+                setModules(response.data); // Save modules from the backend to state
+            })
+            .catch(error => {
+                console.error('Error fetching modules:', error);
+            });
+             */
+    }, []);
+    const fetchModules = () => {
         axios.get('http://localhost:5000/api/modules')
             .then(response => {
                 setModules(response.data); // Save modules from the backend to state
@@ -17,7 +30,7 @@ const Module = () => {
             .catch(error => {
                 console.error('Error fetching modules:', error);
             });
-    }, []);
+    };
 
     const handleButtonClick = (folderName) => {
         if (folderName) {
@@ -27,12 +40,14 @@ const Module = () => {
     const handleCreateModule = () => {
         if (moduleName) {
             // Send a POST request to create the module
-            axios.post('http://localhost:5000/api/create-module', { moduleName, includeNewLanguageFile })
+            axios.post('http://localhost:5000/api/create-module', { moduleName })
                 .then(response => {
                     alert(response.data.message);
+                   /*  console.log('Module creted:', response.data) */
                     return axios.get('http://localhost:5000/api/modules');
                 })
                 .then(res => {
+                   /*  console.log('Fetched modules:', res.data) */
                     setModules(res.data); // Update the module list
                 })
                 .catch(error => {
@@ -43,25 +58,51 @@ const Module = () => {
             alert('Please enter a module name');
         }
     };
+    const handleUpdateModuleName = async (oldModuleName,newModuleName) => {
+        if (!newModuleName) {
+            alert('Please enter a new module name');
+            return;
+        }
+    
+        try {
+            const response = await axios.put(`http://localhost:5000/api/modules/${oldModuleName}`, {
+                newModuleName
+            });
+            alert(response.data.message);
+            fetchModules();  // Refresh the module list
+        } catch (error) {
+            console.error('Error updating module name:', error);
+            alert('Error updating module name');
+        }
+    };
+    
 
     return (
         <div className='container'>
-            <h1 className='title'>Modul Page</h1>
-             <div className="module-container">
-                <div className="module-card" onClick={() => handleButtonClick('client')}>
-                    <h2>Client</h2>
-                    <p>This folder contains client-specific data.</p>
-                </div>
-                <div className="module-card" onClick={() => handleButtonClick('admin')}>
-                    <h2>Admin</h2>
-                    <p>This folder contains admin-specific data.</p>
-                </div>
-            </div> 
+            <h1 className='title'>Module Page</h1>
             <div className="module-container">
                 {modules.map((module) => (
-                    <div key={module} className="module-card" onClick={() => handleButtonClick(module)}>
-                        <h2>{module}</h2>
-                        <p>This folder contains {module}-specific data.</p>
+                    <div key={module} className="module-card">
+                        {editingModule === module ? (
+                            <>
+                                <input
+                                    type="text"
+                                    placeholder="Enter new module name"
+                                    value={newModuleName}
+                                    onChange={(e) => setNewModuleName(e.target.value)}
+                                />
+                                <button onClick={() => handleUpdateModuleName(module)}>Update Module</button>
+                                <button onClick={() => setEditingModule(null)}>Cancel</button>
+                            </>
+                        ) : (
+                            <>
+                                <h2>{module}</h2>
+                                <p>This folder contains {module}-specific data.</p>
+                                <button onClick={() => setEditingModule(module)}>Edit Module Name</button>
+                                <button onClick={() => handleButtonClick(module)}>Go to Module</button>
+
+                            </>
+                        )}
                     </div>
                 ))}
             </div>
@@ -71,14 +112,6 @@ const Module = () => {
                 value={moduleName}
                 onChange={(e) => setModuleName(e.target.value)}
             />
-           {/*  <div>
-                <input
-                    type="checkbox"
-                    checked={includeNewLanguageFile}
-                    onChange={(e) => setIncludeNewLanguageFile(e.target.checked)}
-                />
-                <label>Include newLanguage.json</label>
-            </div> */}
             <button onClick={handleCreateModule}>Create Module</button>
         </div>
     );

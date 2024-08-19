@@ -1,7 +1,7 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './modul.css'
+import './modul.css';
 
 const Module = () => {
     const navigate = useNavigate();
@@ -10,18 +10,10 @@ const Module = () => {
     const [newModuleName, setNewModuleName] = useState(''); // State to handle new module name for update
     const [editingModule, setEditingModule] = useState(null); // Track the module being edited
 
-    
     useEffect(() => {
         fetchModules();
-      /*   axios.get('http://localhost:5000/api/modules')
-            .then(response => {
-                setModules(response.data); // Save modules from the backend to state
-            })
-            .catch(error => {
-                console.error('Error fetching modules:', error);
-            });
-             */
     }, []);
+
     const fetchModules = () => {
         axios.get('http://localhost:5000/api/modules')
             .then(response => {
@@ -37,17 +29,16 @@ const Module = () => {
             navigate(`/languages/${folderName}`);
         }
     };
+
     const handleCreateModule = () => {
         if (moduleName) {
             // Send a POST request to create the module
             axios.post('http://localhost:5000/api/create-module', { moduleName })
                 .then(response => {
                     alert(response.data.message);
-                   /*  console.log('Module creted:', response.data) */
                     return axios.get('http://localhost:5000/api/modules');
                 })
                 .then(res => {
-                   /*  console.log('Fetched modules:', res.data) */
                     setModules(res.data); // Update the module list
                 })
                 .catch(error => {
@@ -58,22 +49,23 @@ const Module = () => {
             alert('Please enter a module name');
         }
     };
-    const handleUpdateModuleName = async (oldModuleName,newModuleName) => {
+
+    const handleUpdateModuleName = (oldModuleName) => {
         if (!newModuleName) {
             alert('Please enter a new module name');
             return;
         }
-    
-        try {
-            const response = await axios.put(`http://localhost:5000/api/modules/${oldModuleName}`, {
-                newModuleName
+
+        axios.put(`http://localhost:5000/api/modules/${oldModuleName}`, { newModuleName })
+            .then(response => {
+                console.log(response.data);
+                alert(response.data.message);
+                fetchModules(); // Refresh the module list
+            })
+            .catch(error => {
+                console.error('Error:', error.response?.data || error.message);
+                alert('Error updating module name');
             });
-            alert(response.data.message);
-            fetchModules();  // Refresh the module list
-        } catch (error) {
-            console.error('Error updating module name:', error);
-            alert('Error updating module name');
-        }
     };
     
 
@@ -91,7 +83,7 @@ const Module = () => {
                                     value={newModuleName}
                                     onChange={(e) => setNewModuleName(e.target.value)}
                                 />
-                                <button onClick={() => handleUpdateModuleName(module)}>Update Module</button>
+                                <button onClick={() => handleUpdateModuleName(module)}>Update Module Name</button>
                                 <button onClick={() => setEditingModule(null)}>Cancel</button>
                             </>
                         ) : (
@@ -100,7 +92,6 @@ const Module = () => {
                                 <p>This folder contains {module}-specific data.</p>
                                 <button onClick={() => setEditingModule(module)}>Edit Module Name</button>
                                 <button onClick={() => handleButtonClick(module)}>Go to Module</button>
-
                             </>
                         )}
                     </div>
@@ -118,6 +109,7 @@ const Module = () => {
 };
 
 export default Module;
+
 
 
 

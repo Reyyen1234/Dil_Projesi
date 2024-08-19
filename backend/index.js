@@ -19,21 +19,48 @@ const readJsonFile = (filePath, res) => {
 };
 
 // Function to write JSON data to a file
-const writeJsonFile = (filePath, data, res) => {
-    fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
-        if (err) {
-            console.error(`Error writing to ${filePath}:`, err);
-            if (!res.headersSent) {
-                return res.status(500).json({ error: `Error writing to ${path.basename(filePath)}` });
+function writeJsonFile(filePath, newData, res) {
+    // First, check if the file exists
+    if (fs.existsSync(filePath)) {
+        // Read existing data
+        fs.readFile(filePath, 'utf8', (err, existingData) => {
+            if (err) {
+                console.error(`Error reading file: ${err.message}`);
+                return res.status(500).json({ error: `Error reading file: ${err.message}` });
             }
-        }
-        if (!res.headersSent) {
-            res.status(200).json({ message: `Data successfully written for ${path.basename(filePath)}` });
-        }
-        res.status(200).json({ message: `Data successfully written for ${path.basename(filePath)}` });
-    });
-};
 
+            // Parse existing data and merge with the new data
+            let jsonData;
+            try {
+                jsonData = JSON.parse(existingData);
+            } catch (parseError) {
+                console.error('Error parsing JSON:', parseError);
+                return res.status(500).json({ error: 'Error parsing existing JSON data.' });
+            }
+
+            // Merge existing data with new data
+            const mergedData = { ...jsonData, ...newData };
+
+            // Write the merged data back to the file
+            fs.writeFile(filePath, JSON.stringify(mergedData, null, 2), 'utf8', (writeErr) => {
+                if (writeErr) {
+                    console.error(`Error writing file: ${writeErr.message}`);
+                    return res.status(500).json({ error: `Error writing file: ${writeErr.message}` });
+                }
+                return res.json({ message: 'Language data saved successfully!' });
+            });
+        });
+    } else {
+        // File does not exist, create it with the new data
+        fs.writeFile(filePath, JSON.stringify(newData, null, 2), 'utf8', (err) => {
+            if (err) {
+                console.error(`Error creating file: ${err.message}`);
+                return res.status(500).json({ error: `Error creating file: ${err.message}` });
+            }
+            return res.json({ message: 'Language data saved successfully!' });
+        });
+    }
+}
 
 // Route to get data from client/en.json or client/tr.json
 app.get('/api/client/:lang', (req, res) => {
@@ -48,38 +75,42 @@ app.get('/api/admin/:lang', (req, res) => {
     const filePath = path.join(__dirname, 'karcinDilSource', 'admin',`${lang}.json`);
     readJsonFile(filePath, res);
 });
+app.get('/api/:type/:lang', (req, res) => {
+    const type = req.params.type;
+    const lang = req.params.lang;
+    console.log(`Request received for type: ${type}, lang: ${lang}`);
+
+    const filePath = path.join(__dirname, 'karcinDilSource', type, `${lang}.json`);
+    console.log(`File path: ${filePath}`);
+
+    readJsonFile(filePath, res);
+});
+
 
 
 app.post('/api/:type/:lang', (req, res) => {
-    const type = req.params.type;  // "client", "admin", or "newLanguages"
-    const lang = req.params.lang;  // New language identifier
+    const type = req.params.type;
+    const lang = req.params.lang;
     const data = req.body;
 
-    console.log(`Type: ${type}, Language: ${lang}`);
-
-   let folder;
-   if (type === 'client' || type === 'admin') {
-       folder = `karcinDilSource/${type}`;
-   } else {
-       // Assume type is a module name
-       folder = `karcinDilSource/${type}`;
-   }
+    let folder = type === 'client' || type === 'admin' ? `karcinDilSource/${type}` : `karcinDilSource/${type}`;
     const filePath = path.join(__dirname, folder, `${lang}.json`);
 
-     const dirPath = path.dirname(filePath);
-     if (!fs.existsSync(dirPath)) {
-         return res.status(400).json({ error: `Directory ${dirPath} does not exist` });
-     }
- 
-     // Write the new language data to the file
-     fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
-         if (err) {
-             console.error(`Error writing to ${filePath}:`, err);
-             return res.status(500).json({ error: `Error writing to ${path.basename(filePath)}` });
-         }
-         res.status(200).json({ message: `Language successfully added to ${filePath}` });
-     });
- });
+    const dirPath = path.dirname(filePath);
+    if (!fs.existsSync(dirPath)) {
+        return res.status(400).json({ error: `Directory ${dirPath} does not exist` });
+    }
+
+    fs.writeFile(filePath, JSON.stringify(data, null, 2), (err) => {
+        if (err) {
+            console.error('Error writing file:', err);
+            return res.status(500).json({ error: 'Error writing file' });
+        }
+        res.status(200).json({ message: `Language file ${lang}.json created successfully` });
+    });
+});
+
+
 
 
 // Route to delete a language file
@@ -113,17 +144,6 @@ app.delete('/api/:type/:lang', (req, res) => {
         res.json(modules);
     });
 }); 
-/* app.get('/api/modules/:moduleName', (req, res) => {
-    const moduleName = req.params.moduleName;
-    const folderPath = path.join(__dirname, 'karcinDilSource', moduleName);
-
-    fs.access(folderPath, (err) => {
-        if (err) {
-            return res.status(404).json({ error: `Module '${moduleName}' not found` });
-        }
-        res.status(200).json({ message: `Module '${moduleName}' exists` });
-    });
-}); */
 
 
 
@@ -148,7 +168,7 @@ app.post('/api/create-module', (req, res) => {
         console.log(`Creating module directory at path: ${modulesPath}`);
         fs.mkdirSync(modulesPath,(err)=>{
          return res.status(500).json({error:'Error creating module'})
-        })/*  { recursive: true }); */
+        })
         console.log(`Module directory '${moduleName}' created successfully`);
     
         const trFilePath = path.join(modulesPath, 'tr.json');
@@ -158,17 +178,11 @@ app.post('/api/create-module', (req, res) => {
         fs.writeFileSync(enFilePath, JSON.stringify({}, null, 2), 'utf8');
             if (includeNewLanguageFile) {
                 const newLanguageFilePath = path.join(modulesPath, 'newLanguage.json');
-                fs.writeFile(newLanguageFilePath, '{}', (err) => {
-                    if (err) {
-                        return res.status(500).json({ error: 'Error creating new language file' });
-                    }
-    
-                    return res.json({ message: 'Module and newLanguage.json created successfully' });
-                });
+                writeJsonFile(newLanguageFilePath, {}, res);
+
             } else {
                 res.json({ message: 'Module created successfully' });
             }
-        /* return res.status(200).json({ message: `Module '${moduleName}' created successfully` }); */
      }catch (err) {
         console.error('Error creating module:', err.message, err.stack); // Enhanced logging
         return res.status(500).json({ error: `Error creating module: ${err.message}` });
@@ -177,21 +191,29 @@ app.post('/api/create-module', (req, res) => {
      
 });
 
+
 // PUT route to update module name
+
 app.put('/api/modules/:moduleName', (req, res) => {
     const oldModuleName = req.params.moduleName;
     const newModuleName = req.body.newModuleName;
-    
+
+    console.log(`Old Module Name: ${oldModuleName}`);
+    console.log(`New Module Name: ${newModuleName}`);
+
+    // Validate newModuleName
+    if (!newModuleName || newModuleName.trim() === "") {
+        return res.status(400).json({ error: "Please enter a new module name" });
+    }
+
     const oldFolderPath = path.join(__dirname, 'karcinDilSource', oldModuleName);
     const newFolderPath = path.join(__dirname, 'karcinDilSource', newModuleName);
 
-    // Check if the old module exists
     fs.access(oldFolderPath, fs.constants.F_OK, (err) => {
         if (err) {
             return res.status(404).json({ error: `Module '${oldModuleName}' not found` });
         }
 
-        // Rename the directory
         fs.rename(oldFolderPath, newFolderPath, (err) => {
             if (err) {
                 return res.status(500).json({ error: `Error renaming module: ${err.message}` });
@@ -200,12 +222,6 @@ app.put('/api/modules/:moduleName', (req, res) => {
         });
     });
 });
-
-
-
-
-
-
 
 
 app.listen(PORT, () => {

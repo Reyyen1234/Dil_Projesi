@@ -111,8 +111,6 @@ app.post('/api/:type/:lang', (req, res) => {
 });
 
 
-
-
 // Route to delete a language file
 app.delete('/api/:type/:lang', (req, res) => {
     const type = req.params.type;
@@ -140,7 +138,10 @@ app.delete('/api/:type/:lang', (req, res) => {
         if (err) {
             return res.status(500).json({ error: 'Error reading modules directory' });
         }
-        const modules = files.filter(file => fs.statSync(path.join(modulesPath, file)).isDirectory());
+          // Only return directories (modules)
+          const modules = files.filter(file => {
+            return fs.statSync(path.join(modulesPath, file)).isDirectory();
+        });
         res.json(modules);
     });
 }); 
@@ -150,46 +151,60 @@ app.delete('/api/:type/:lang', (req, res) => {
 // Route to create a new module (like client/admin)
 app.post('/api/create-module', (req, res) => {
     const { moduleName, includeNewLanguageFile } = req.body;
-  
-    // Ensure the moduleName is provided
+
     if (!moduleName) {
         return res.status(400).json({ error: 'Module name is required' });
     }
 
-    // Define the path for the new module
     const modulesPath = path.join(__dirname, 'karcinDilSource', moduleName);
 
-    // Check if the module already exists
     if (fs.existsSync(modulesPath)) {
         return res.status(400).json({ error: 'Module already exists' });
     }
-    try{
-    // Create the module folder
-        console.log(`Creating module directory at path: ${modulesPath}`);
-        fs.mkdirSync(modulesPath,(err)=>{
-         return res.status(500).json({error:'Error creating module'})
-        })
-        console.log(`Module directory '${moduleName}' created successfully`);
-    
+
+    try {
+        fs.mkdirSync(modulesPath, { recursive: true });
+
         const trFilePath = path.join(modulesPath, 'tr.json');
         const enFilePath = path.join(modulesPath, 'en.json');
-        
+
         fs.writeFileSync(trFilePath, JSON.stringify({}, null, 2), 'utf8');
         fs.writeFileSync(enFilePath, JSON.stringify({}, null, 2), 'utf8');
-            if (includeNewLanguageFile) {
-                const newLanguageFilePath = path.join(modulesPath, 'newLanguage.json');
-                writeJsonFile(newLanguageFilePath, {}, res);
 
-            } else {
-                res.json({ message: 'Module created successfully' });
-            }
-     }catch (err) {
-        console.error('Error creating module:', err.message, err.stack); // Enhanced logging
-        return res.status(500).json({ error: `Error creating module: ${err.message}` });
+        if (includeNewLanguageFile) {
+            const newLanguageFilePath = path.join(modulesPath, 'newLanguage.json');
+            fs.writeFileSync(newLanguageFilePath, JSON.stringify({}, null, 2), 'utf8');
+        }
+
+        res.json({ message: 'Module created successfully' });
+    } catch (err) {
+        console.error('Error creating module:', err.message);
+        res.status(500).json({ error: `Error creating module: ${err.message}` });
     }
-
-     
 });
+app.post('/api/:moduleName/:lang/add-key', (req, res) => {
+    const { moduleName, lang } = req.params;
+    const { key, value } = req.body;
+    const filePath = path.join(__dirname, 'karcinDilSource', moduleName, `${lang}.json`);
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).send('Error reading file');
+        }
+
+        let jsonData = JSON.parse(data);
+        jsonData[key] = value;
+
+        fs.writeFile(filePath, JSON.stringify(jsonData, null, 2), (err) => {
+            if (err) {
+                return res.status(500).send('Error writing to file');
+            }
+
+            res.send('Key added successfully');
+        });
+    });
+});
+
 
 
 // PUT route to update module name

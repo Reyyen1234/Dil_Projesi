@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import "./languagesPage.css";
+import './languagesPage.css';
 
 const LanguagesPage = () => {
     const { userType } = useParams();
@@ -13,18 +13,19 @@ const LanguagesPage = () => {
     const [newLangFileName, setNewLangFileName] = useState(''); // State for the new language file name
     const [newKey, setNewKey] = useState(''); // State for the new key
     const [newValue, setNewValue] = useState(''); // State for the new value
-    const [selectedLanguageFile, setSelectedLanguageFile] = useState('en'); 
+    const [selectedLanguageFile, setSelectedLanguageFile] = useState('en');
     const navigate = useNavigate();
 
     useEffect(() => {
+        // Fetch data for selected language
         axios.get(`http://localhost:5000/api/${userType}/en`)
             .then(response => setData(response.data))
             .catch(error => console.error('Error fetching English data:', error));
-    
+
         axios.get(`http://localhost:5000/api/${userType}/tr`)
             .then(response => setTrData(response.data))
             .catch(error => console.error('Error fetching Turkish data:', error));
-    
+
         if (language !== 'en' && language !== 'tr') {
             axios.get(`http://localhost:5000/api/${userType}/${language}`)
                 .then(response => {
@@ -69,14 +70,14 @@ const LanguagesPage = () => {
             alert('Please enter both a key and a value.');
             return;
         }
-    
+
         const languageFile = selectedLanguageFile; // 'en' or 'tr'
         const payload = { key: newKey, value: newValue };
-    
+
         try {
             // Make the POST request to add the key
             await axios.post(`http://localhost:5000/api/${userType}/${languageFile}/add-key`, payload);
-    
+
             // Fetch the updated data from the backend
             const response = await axios.get(`http://localhost:5000/api/${userType}/${languageFile}`);
             if (languageFile === 'en') {
@@ -84,7 +85,7 @@ const LanguagesPage = () => {
             } else if (languageFile === 'tr') {
                 setTrData(response.data); // Update the TR data
             }
-    
+
             // Clear the input fields
             setNewKey('');
             setNewValue('');
@@ -94,7 +95,7 @@ const LanguagesPage = () => {
             alert('Failed to add the key.');
         }
     };
-    
+
     const handleDeleteLanguage = () => {
         axios.delete(`http://localhost:5000/api/${userType}/${language}`)
             .then(response => {
@@ -144,21 +145,21 @@ const LanguagesPage = () => {
                     </tbody>
                 </table>
                 <div className='input-section'>
-                <input
-                type="text"
-                value={newKey}
-                onChange={(e) => setNewKey(e.target.value)}
-                placeholder="Enter new key"
-                className="input-text"
-            />
-            <input
-                type="text"
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
-                placeholder="Enter new value"
-                className="input-text"
-            />
-            <button onClick={handleAddKey}>Add Key</button>
+                    <input
+                        type="text"
+                        value={newKey}
+                        onChange={(e) => setNewKey(e.target.value)}
+                        placeholder="Enter new key"
+                        className="input-text"
+                    />
+                    <input
+                        type="text"
+                        value={newValue}
+                        onChange={(e) => setNewValue(e.target.value)}
+                        placeholder="Enter new value"
+                        className="input-text"
+                    />
+                    <button onClick={handleAddKey}>Add Key</button>
                     <input
                         type="text"
                         value={newLangFileName}
@@ -166,7 +167,8 @@ const LanguagesPage = () => {
                         placeholder="Enter new language name"
                     />
                     {
-                        Object.keys(data).map(key => (
+                        // Render translation inputs only if newLangData is not empty
+                        Object.keys(newLangData).length > 0 && Object.keys(newLangData).map(key => (
                             <div key={key} className="input-wrapper">
                                 <input
                                     type="text"
@@ -179,9 +181,9 @@ const LanguagesPage = () => {
                     }
                 </div>
                 <div className="button-group">
-            <button onClick={handleAddLanguage} className="btn">Add Language</button>
-            <button onClick={handleDeleteLanguage} className="btn">Delete Current Language</button>
-            <button onClick={handleGoBack} className="btn">Back to Modules</button>
+                    <button onClick={handleAddLanguage} className="btn">Add Language</button>
+                    <button onClick={handleDeleteLanguage} className="btn">Delete Current Language</button>
+                    <button onClick={handleGoBack} className="btn">Back to Modules</button>
                 </div>
             </div>
         </div>
@@ -189,3 +191,4 @@ const LanguagesPage = () => {
 };
 
 export default LanguagesPage;
+

@@ -40,6 +40,7 @@ const Module = () => {
                 })
                 .then(res => {
                     setModules(res.data); // Update the module list
+                    setModuleName(''); // Clear the input field after adding
                 })
                 .catch(error => {
                     console.error('Error creating module:', error);
@@ -49,7 +50,8 @@ const Module = () => {
             alert('Please enter a module name');
         }
     };
-
+    
+    
     const handleUpdateModuleName = (oldModuleName) => {
         if (!newModuleName) {
             alert('Please enter a new module name');

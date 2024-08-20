@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import "./languagesPage.css";
+import './languagesPage.css';
 
 const LanguagesPage = () => {
     const { userType } = useParams();
@@ -9,11 +9,11 @@ const LanguagesPage = () => {
     const [data, setData] = useState({});
     const [trData, setTrData] = useState({});
     const [newLangData, setNewLangData] = useState({});
-    const [newLangName, setNewLangName] = useState('New Language');
-    const [newLangFileName, setNewLangFileName] = useState(''); // State for the new language file name
+    const [newLangName, setNewLangName] = useState('');  // Initialize with empty string
+    const [newLangTranslation, setNewLangTranslation] = useState('');
+    const [selectedLanguageFile, setSelectedLanguageFile] = useState('en');
     const [newKey, setNewKey] = useState(''); // State for the new key
     const [newValue, setNewValue] = useState(''); // State for the new value
-    const [selectedLanguageFile, setSelectedLanguageFile] = useState('en'); 
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -26,44 +26,39 @@ const LanguagesPage = () => {
             .catch(error => console.error('Error fetching Turkish data:', error));
     
         if (language !== 'en' && language !== 'tr') {
-            axios.get(`http://localhost:5000/api/${userType}/${language}`)
-                .then(response => {
-                    const fetchedData = response.data;
-                    setNewLangData(fetchedData);
-                    setNewLangName(fetchedData.langName || 'New Language');
-                })
-                .catch(error => console.error('Error fetching new language data:', error));
+            fetchLanguageData(language);
         }
     }, [userType, language]);
 
-    const handleInputChange = (key, value) => {
-        setNewLangData(prevData => ({ ...prevData, [key]: value }));
+    const fetchLanguageData = (lang) => {
+        axios.get(`http://localhost:5000/api/${userType}/${lang}`)
+            .then(response => setNewLangData(response.data))
+            .catch(error => console.error('Error fetching updated language data:', error));
     };
 
     const handleAddLanguage = () => {
-        if (!newLangFileName) {
-            alert('Please enter a name for the new language.');
+        if (!newLangName || !newLangTranslation) {
+            alert('Please provide both the language name and the translation for "hello".');
             return;
         }
+        const newLanguageData = { hello: newLangTranslation };
 
-        if (Object.keys(newLangData).length === 0) {
-            alert('Please enter valid language data before adding.');
-            return;
-        }
-
-        axios.post(`http://localhost:5000/api/${userType}/${newLangFileName}`, newLangData)
+        axios.post(`http://localhost:5000/api/${userType}/${newLangName}`, newLanguageData)
             .then(response => {
-                alert('Language added successfully!');
-                return axios.get(`http://localhost:5000/api/${userType}/${newLangFileName}`);
+                alert(`Language file "${newLangName}.json" created successfully!`);
+                fetchLanguageData(newLangName);  // Fetch the new language data
+                // Optionally keep the newLangName for displaying in the table
             })
-            .then(res => {
-                setData(res.data);
-                setNewLangFileName(''); // Clear the input field after adding
-                setNewLangData({}); // Clear the language data after adding
-            })
-            .catch(error => console.error('Error adding language:', error));
+            .catch(error => {
+                console.error('Error creating new language:', error.response ? error.response.data : error.message);
+                alert('Failed to create new language. Please try again.');
+            });
     };
 
+    const handleTranslationChange = (e) => {
+        setNewLangTranslation(e.target.value);
+    };
+    
     const handleAddKey = async () => {
         if (!newKey || !newValue) {
             alert('Please enter both a key and a value.');
@@ -94,7 +89,7 @@ const LanguagesPage = () => {
             alert('Failed to add the key.');
         }
     };
-    
+
     const handleDeleteLanguage = () => {
         axios.delete(`http://localhost:5000/api/${userType}/${language}`)
             .then(response => {
@@ -113,7 +108,7 @@ const LanguagesPage = () => {
             <div className="container">
                 <h1 className="title">Karcin Dil Project</h1>
                 <h1>Languages Page for {userType}</h1>
-                <label>Select language file to update:</label>
+                <label>Select language JSON file:</label>
                 <select
                     value={selectedLanguageFile}
                     onChange={(e) => setSelectedLanguageFile(e.target.value)}
@@ -127,20 +122,20 @@ const LanguagesPage = () => {
                             <th>Keys</th>
                             <th>EN</th>
                             <th>TR</th>
-                            <th>{newLangName}</th>
+                         <th>{newLangName || 'new Language'}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {
-                            Object.keys(data).map(key => (
-                                <tr key={key}>
-                                    <td>{key}</td>
-                                    <td>{data[key]}</td>
-                                    <td>{trData[key] || '-'}</td>
-                                    <td>{newLangData[key] || ''}</td>
-                                </tr>
-                            ))
-                        }
+                    {
+            Object.keys(selectedLanguageFile === 'en' ? data : trData).map(key => (
+                <tr key={key}>
+                    <td>{key}</td>
+                    <td>{selectedLanguageFile === 'en' ? data[key] : '-'}</td>
+                    <td>{selectedLanguageFile === 'tr' ? trData[key] : '-'}</td>
+                    <td>{newLangData[key] || ''}</td>
+                </tr>
+            ))
+        }
                     </tbody>
                 </table>
                 <div className='input-section'>
@@ -161,27 +156,24 @@ const LanguagesPage = () => {
             <button onClick={handleAddKey}>Add Key</button>
                     <input
                         type="text"
-                        value={newLangFileName}
-                        onChange={(e) => setNewLangFileName(e.target.value)}
+                        value={newLangName}
+                        onChange={(e) => setNewLangName(e.target.value)}
                         placeholder="Enter new language name"
                     />
-                    {
-                        Object.keys(data).map(key => (
-                            <div key={key} className="input-wrapper">
-                                <input
-                                    type="text"
-                                    value={newLangData[key] || ''}
-                                    onChange={(e) => handleInputChange(key, e.target.value)}
-                                    placeholder={`Enter ${newLangName} translation`}
-                                />
-                            </div>
-                        ))
-                    }
+                    <div className="input-wrapper">
+                        <input
+                            type="text"
+                            placeholder="Enter translation for 'hello'"
+                            value={newLangTranslation}
+                            onChange={handleTranslationChange}
+                        />
+                    </div>
+                    
                 </div>
                 <div className="button-group">
-            <button onClick={handleAddLanguage} className="btn">Add Language</button>
-            <button onClick={handleDeleteLanguage} className="btn">Delete Current Language</button>
-            <button onClick={handleGoBack} className="btn">Back to Modules</button>
+                    <button onClick={handleAddLanguage} className="btn">Add New Language</button>
+                    <button onClick={handleDeleteLanguage} className="btn">Delete Current Language</button>
+                    <button onClick={handleGoBack} className="btn">Back to Modules</button>
                 </div>
             </div>
         </div>

@@ -84,6 +84,7 @@ app.get('/api/:type/:lang', (req, res) => {
     console.log(`File path: ${filePath}`);
 
     readJsonFile(filePath, res);
+    
 });
 
 
@@ -93,14 +94,22 @@ app.post('/api/:type/:lang', (req, res) => {
     const lang = req.params.lang;
     const data = req.body;
 
+    console.log('Received request to create language:', lang);
+    console.log('User type:', type);
+    console.log('Data:', data);
+
+    // Construct folder and file paths
     let folder = type === 'client' || type === 'admin' ? `karcinDilSource/${type}` : `karcinDilSource/${type}`;
     const filePath = path.join(__dirname, folder, `${lang}.json`);
 
+    // Check if the directory exists
     const dirPath = path.dirname(filePath);
     if (!fs.existsSync(dirPath)) {
+        console.error(`Directory ${dirPath} does not exist`);
         return res.status(400).json({ error: `Directory ${dirPath} does not exist` });
     }
 
+    // Write the file
     fs.writeFile(filePath, JSON.stringify(data, null, 2), (err) => {
         if (err) {
             console.error('Error writing file:', err);
@@ -109,6 +118,10 @@ app.post('/api/:type/:lang', (req, res) => {
         res.status(200).json({ message: `Language file ${lang}.json created successfully` });
     });
 });
+
+
+
+
 
 
 // Route to delete a language file

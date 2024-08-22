@@ -7,7 +7,11 @@ const PORT = 5000;
 
 app.use(cors());
 app.use(express.json()); // To parse JSON bodies
-
+const BASE_DIR = path.join(__dirname, 'karcinDilSource');
+// Middleware to ensure that the base directory exists
+if (!fs.existsSync(BASE_DIR)) {
+    fs.mkdirSync(BASE_DIR);
+}
 
 const readJsonFile = (filePath, res) => {
     fs.readFile(filePath, 'utf8', (err, data) => {
@@ -17,50 +21,22 @@ const readJsonFile = (filePath, res) => {
         res.json(JSON.parse(data));
     });
 };
+// Get available languages
+app.get('/api/:userType/available-languages', (req, res) => {
+    const { userType } = req.params;
+    const userDir = path.join(BASE_DIR, userType);
 
-// Function to write JSON data to a file
-function writeJsonFile(filePath, newData, res) {
-    // First, check if the file exists
-    if (fs.existsSync(filePath)) {
-        // Read existing data
-        fs.readFile(filePath, 'utf8', (err, existingData) => {
-            if (err) {
-                console.error(`Error reading file: ${err.message}`);
-                return res.status(500).json({ error: `Error reading file: ${err.message}` });
-            }
+    fs.readdir(userDir, (err, files) => {
+        if (err) return res.status(500).send('Error reading directory');
 
-            // Parse existing data and merge with the new data
-            let jsonData;
-            try {
-                jsonData = JSON.parse(existingData);
-            } catch (parseError) {
-                console.error('Error parsing JSON:', parseError);
-                return res.status(500).json({ error: 'Error parsing existing JSON data.' });
-            }
+        // Filter JSON files and remove file extension
+        const languages = files
+            .filter(file => file.endsWith('.json'))
+            .map(file => path.basename(file, '.json'));
 
-            // Merge existing data with new data
-            const mergedData = { ...jsonData, ...newData };
-
-            // Write the merged data back to the file
-            fs.writeFile(filePath, JSON.stringify(mergedData, null, 2), 'utf8', (writeErr) => {
-                if (writeErr) {
-                    console.error(`Error writing file: ${writeErr.message}`);
-                    return res.status(500).json({ error: `Error writing file: ${writeErr.message}` });
-                }
-                return res.json({ message: 'Language data saved successfully!' });
-            });
-        });
-    } else {
-        // File does not exist, create it with the new data
-        fs.writeFile(filePath, JSON.stringify(newData, null, 2), 'utf8', (err) => {
-            if (err) {
-                console.error(`Error creating file: ${err.message}`);
-                return res.status(500).json({ error: `Error creating file: ${err.message}` });
-            }
-            return res.json({ message: 'Language data saved successfully!' });
-        });
-    }
-}
+        res.json(languages);
+    });
+});
 
 // Route to get data from client/en.json or client/tr.json
 app.get('/api/client/:lang', (req, res) => {
@@ -92,30 +68,13 @@ app.get('/api/:type/:lang', (req, res) => {
 app.post('/api/:type/:lang', (req, res) => {
     const type = req.params.type;
     const lang = req.params.lang;
-    const data = req.body;
+    const newLanguageData = req.body;
+    const filePath = path.join(__dirname, 'karcinDilSource', type, `${lang}.json`);
 
-    console.log('Received request to create language:', lang);
-    console.log('User type:', type);
-    console.log('Data:', data);
+    fs.writeFile(filePath, JSON.stringify(newLanguageData, null, 2), (err) => {
+        if (err) return res.status(500).json({ error: 'Error writing file' });
 
-    // Construct folder and file paths
-    let folder = type === 'client' || type === 'admin' ? `karcinDilSource/${type}` : `karcinDilSource/${type}`;
-    const filePath = path.join(__dirname, folder, `${lang}.json`);
-
-    // Check if the directory exists
-    const dirPath = path.dirname(filePath);
-    if (!fs.existsSync(dirPath)) {
-        console.error(`Directory ${dirPath} does not exist`);
-        return res.status(400).json({ error: `Directory ${dirPath} does not exist` });
-    }
-
-    // Write the file
-    fs.writeFile(filePath, JSON.stringify(data, null, 2), (err) => {
-        if (err) {
-            console.error('Error writing file:', err);
-            return res.status(500).json({ error: 'Error writing file' });
-        }
-        res.status(200).json({ message: `Language file ${lang}.json created successfully` });
+        res.status(200).json({ message: 'Language created successfully' });
     });
 });
 
@@ -255,6 +214,3 @@ app.put('/api/modules/:moduleName', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-
-

@@ -181,4 +181,58 @@ const LanguagesPage = () => {
 };
 
 export default LanguagesPage;
- */
+ 
+const handleAddKey = async () => {
+    if (!newKey || !newValue) {
+        alert('Please enter both a key and a value.');
+        return;
+    }
+
+    const languageFile = selectedLanguageFile; // 'en' or 'tr'
+    const payload = { key: newKey, value: newValue };
+
+    try {
+        // Make the POST request to add the key
+        await axios.post(`http://localhost:5000/api/${userType}/${languageFile}/add-key`, payload);
+
+        // Fetch the updated data from the backend
+        const response = await axios.get(`http://localhost:5000/api/${userType}/${languageFile}`);
+        if (languageFile === 'en') {
+            setData(response.data); // Update the EN data
+        } else if (languageFile === 'tr') {
+            setTrData(response.data); // Update the TR data
+        }
+
+        // Clear the input fields
+        setNewKey('');
+        setNewValue('');
+        alert(`Key added successfully to ${languageFile}.json!`);
+    } catch (error) {
+        console.error('Error adding key:', error);
+        alert('Failed to add the key.');
+    }
+};
+const [newKey, setNewKey] = useState(''); // State for the new key
+const [newValue, setNewValue] = useState(''); // State for the new value
+<input
+type="text"
+value={newKey}
+onChange={(e) => setNewKey(e.target.value)}
+placeholder="Enter new key"
+className="input-text"
+/>
+<input
+type="text"
+value={newValue}
+onChange={(e) => setNewValue(e.target.value)}
+placeholder="Enter new value"
+className="input-text"
+/>
+<button onClick={handleAddKey}>Add Key</button>
+
+
+
+Fetch all available language files on page load: This ensures that both the default and dynamically added languages are fetched.
+Display all languages in the table and the select option.
+Ensure that newly added languages are persisted and fetched again after a page reload.
+*/

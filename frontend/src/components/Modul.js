@@ -69,7 +69,21 @@ const Module = () => {
                 alert('Error updating module name');
             });
     };
+    const handleDeleteModule = async (moduleName) => {
+        try {
+            const response = await axios.delete(`http://localhost:5000/api/modules/${moduleName}`);
+            console.log(response.data.message);
+
+            // After deleting the module, refresh the list of modules
+            fetchModules();
+        } catch (error) {
+            console.error('Error deleting module:', error.response ? error.response.data.error : error.message);
+        }
+    };
     
+    
+    
+
 
     return (
         <div className='container'>
@@ -94,6 +108,7 @@ const Module = () => {
                                 <p>This folder contains {module}-specific data.</p>
                                 <button onClick={() => setEditingModule(module)}>Edit Module Name</button>
                                 <button onClick={() => handleButtonClick(module)}>Go to Module</button>
+                               <button onClick={()=> handleDeleteModule(module)}>Delete Module</button>
                             </>
                         )}
                     </div>

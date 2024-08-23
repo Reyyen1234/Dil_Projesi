@@ -6,7 +6,7 @@ import './languagesPage.css';
 const LanguagesPage = () => {
     const { userType } = useParams();
     const [availableLanguages, setAvailableLanguages] = useState([]);
-    const [selectedLanguageFile, setSelectedLanguageFile] = useState('en');
+    const [selectedLanguageFile, setSelectedLanguageFile] = useState('');
     const [data, setData] = useState({});
     const [newLangName, setNewLangName] = useState('');
     const [newLangTranslation, setNewLangTranslation] = useState('');
@@ -14,7 +14,30 @@ const LanguagesPage = () => {
     const [newValue, setNewValue] = useState('');
     const navigate = useNavigate();
 
+    const fetchAvailableLanguages = async () => {
+        try {
+            const response = await axios.get(`http://localhost:5000/api/${userType}/available-languages`);
+            setAvailableLanguages(response.data);
+            // Set the default language if available
+            if (response.data.length > 0 && !selectedLanguageFile) {
+                setSelectedLanguageFile(response.data[0]);
+            }
+        } catch (error) {
+            console.error('Error fetching available languages:', error);
+        }
+    };
+
+    const fetchLanguageData = async (lang) => {
+        try {
+            const response = await axios.get(`http://localhost:5000/api/${userType}/${lang}`);
+            setData(response.data);
+        } catch (error) {
+            console.error(`Error fetching ${lang} data:`, error);
+        }
+    };
+
     useEffect(() => {
+        // Fetch available languages on component mount
         fetchAvailableLanguages();
     }, [userType]);
 
@@ -24,45 +47,25 @@ const LanguagesPage = () => {
         }
     }, [selectedLanguageFile]);
 
-    const fetchAvailableLanguages = () => {
-        axios.get(`http://localhost:5000/api/${userType}/available-languages`)
-            .then(response => {
-                setAvailableLanguages(response.data);
-                // Set default language if available
-                if (!selectedLanguageFile && response.data.length > 0) {
-                    setSelectedLanguageFile(response.data[0]);
-                }
-            })
-            .catch(error => console.error('Error fetching available languages:', error));
-    };
-
-    const fetchLanguageData = (lang) => {
-        axios.get(`http://localhost:5000/api/${userType}/${lang}`)
-            .then(response => {
-                setData(response.data); // Set data for the selected language
-            })
-            .catch(error => console.error(`Error fetching ${lang} data:`, error));
-    };
-
-    const handleAddLanguage = () => {
+    const handleAddLanguage = async () => {
         if (!newLangName || !newLangTranslation) {
             alert('Please provide both the language name and the translation for "hello".');
             return;
         }
         const newLanguageData = { hello: newLangTranslation };
 
-        axios.post(`http://localhost:5000/api/${userType}/${newLangName}`, newLanguageData)
-            .then(response => {
-                alert(`Language file "${newLangName}.json" created successfully!`);
-                fetchAvailableLanguages();  // Update the list of available languages
-                setSelectedLanguageFile(newLangName);  // Select the new language
-                setNewLangName('');  // Clear input
-                setNewLangTranslation('');  // Clear input
-            })
-            .catch(error => {
-                console.error('Error creating new language:', error.response ? error.response.data : error.message);
-                alert('Failed to create new language. Please try again.');
-            });
+        try {
+            await axios.post(`http://localhost:5000/api/${userType}/${newLangName}`, newLanguageData);
+            alert(`Language file "${newLangName}.json" created successfully!`);
+            // Fetch available languages to update the list
+            await fetchAvailableLanguages();
+            setSelectedLanguageFile(newLangName);
+            setNewLangName('');
+            setNewLangTranslation('');
+        } catch (error) {
+            console.error('Error creating new language:', error.response ? error.response.data : error.message);
+            alert('Failed to create new language. Please try again.');
+        }
     };
 
     const handleTranslationChange = (e) => {
@@ -75,34 +78,37 @@ const LanguagesPage = () => {
             return;
         }
 
-        const languageFile = selectedLanguageFile;
         const payload = { key: newKey, value: newValue };
 
         try {
-            await axios.post(`http://localhost:5000/api/${userType}/${languageFile}/add-key`, payload);
-            const response = await axios.get(`http://localhost:5000/api/${userType}/${languageFile}`);
-            setData(response.data); // Update the data for the selected language
+            await axios.post(`http://localhost:5000/api/${userType}/${selectedLanguageFile}/add-key`, payload);
+            // Refetch the language data
+            const response = await axios.get(`http://localhost:5000/api/${userType}/${selectedLanguageFile}`);
+            setData(response.data);
             setNewKey('');
             setNewValue('');
-            alert(`Key added successfully to ${languageFile}.json!`);
+            alert(`Key added successfully to ${selectedLanguageFile}.json!`);
         } catch (error) {
             console.error('Error adding key:', error);
             alert('Failed to add the key.');
         }
     };
 
-    const handleDeleteLanguage = () => {
-        axios.delete(`http://localhost:5000/api/${userType}/${selectedLanguageFile}`)
-            .then(response => {
-                alert('Language deleted successfully!');
-                fetchAvailableLanguages();  // Refresh the list of available languages
-                if (availableLanguages.length > 0) {
-                    setSelectedLanguageFile(availableLanguages[0]);  // Optionally select the first available language
-                } else {
-                    setData({});  // Clear data if no languages are available
-                }
-            })
-            .catch(error => console.error('Error deleting language:', error));
+    const handleDeleteLanguage = async () => {
+        try {
+            await axios.delete(`http://localhost:5000/api/${userType}/${selectedLanguageFile}`);
+            alert('Language deleted successfully!');
+            // Fetch available languages to update the list
+            await fetchAvailableLanguages();
+            // Optionally select the first available language if any
+            if (availableLanguages.length > 0) {
+                setSelectedLanguageFile(availableLanguages[0]);
+            } else {
+                setData({});
+            }
+        } catch (error) {
+            console.error('Error deleting language:', error);
+        }
     };
 
     const handleGoBack = () => {
